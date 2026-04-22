@@ -1,3 +1,8 @@
 spring:
   application:
     name: rits
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    url: /openapi.yaml

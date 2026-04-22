@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    container_name: sqlserver-2025
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=123abcMetnah # GANTI DENGAN PASSWORD ANDA
+      - MSSQL_PID=Developer
+    volumes:
+      - mssql_data:/var/opt/mssql # Data disimpan di sini
+    restart: unless-stopped # Ini membuat kontainer jalan otomatis saat Docker Desktop aktif
+
+volumes:
+  mssql_data: # Volume persisten

@@ -1,0 +1,24 @@
+# --- Gradle ---
+.gradle/
+build/
+
+# Do NOT ignore the wrapper (important for CI/CD and team consistency)
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+!gradlew
+!gradlew.bat
+
+# --- VS Code ---
+.vscode/
+*.code-workspace
+.history/
+
+# --- Spring Boot & Environment ---
+*.log
+.sts4-cache/
+.env
+application-local.properties
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db

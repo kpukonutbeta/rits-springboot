@@ -1,0 +1,209 @@
+openapi: 3.0.3
+info:
+  title: Flight Reservation API
+  version: 1.0.0
+  description: API specification for the RITS Flight Reservation Engine.
+servers:
+  - url: http://localhost:8080
+    description: Local Spring Boot Backend
+
+paths:
+  /api/v1/flights/search:
+    post:
+      summary: Search for available flights
+      operationId: searchFlights
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlightSearchRequest'
+      responses:
+        '200':
+          description: Successful search
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightSearchResponse'
+
+  /api/v1/flights/book:
+    post:
+      summary: Book selected flights
+      operationId: bookFlights
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlightBookingRequest'
+      responses:
+        '200':
+          description: Booking successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightBookingResponse'
+
+components:
+  schemas:
+    FlightSearchRequest:
+      type: object
+      required: [tripType, fromCity, toCity, departureDate, adult]
+      properties:
+        tripType:
+          type: string
+          enum: [ONE_WAY, TWO_WAY]
+        fromCity:
+          type: string
+          example: "CGK"
+        toCity:
+          type: string
+          example: "DPS"
+        departureDate:
+          type: string
+          format: date
+          example: "2026-04-22"
+        returnDate:
+          type: string
+          format: date
+          example: "2026-04-27"
+        adult:
+          type: integer
+          example: 1
+        child:
+          type: integer
+          example: 0
+        infant:
+          type: integer
+          example: 0
+
+    FlightSearchResponse:
+      type: object
+      properties:
+        airlines:
+          type: array
+          items:
+            $ref: '#/components/schemas/Airline'
+
+    Airline:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "sj"
+        name:
+          type: string
+          example: "Sriwijaya Air (SJ)"
+        flights:
+          type: array
+          items:
+            $ref: '#/components/schemas/Flight'
+
+    Flight:
+      type: object
+      properties:
+        flightNo:
+          type: string
+          example: "SJ-256"
+        aircraft:
+          type: string
+          example: "B737-800"
+        origin:
+          type: string
+          example: "CGK"
+        originTime:
+          type: string
+          example: "08:00"
+        destination:
+          type: string
+          example: "DPS"
+        destTime:
+          type: string
+          example: "10:50"
+        duration:
+          type: string
+          example: "1H 50M"
+        priceBasic:
+          type: string
+          example: "850,000"
+        priceTax:
+          type: string
+          example: "150,000"
+        priceTotal:
+          type: string
+          example: "1,000,000"
+        isReturn:
+          type: boolean
+          example: false
+
+    FlightBookingRequest:
+      type: object
+      required: [flights, passengers, contact, totalFare]
+      properties:
+        flights:
+          type: array
+          items:
+            $ref: '#/components/schemas/Flight'
+        passengers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Passenger'
+        contact:
+          $ref: '#/components/schemas/Contact'
+        totalFare:
+          type: string
+          example: "1,000,000"
+        totalPassengers:
+          type: integer
+          example: 1
+
+    Passenger:
+      type: object
+      required: [title, firstName, surname]
+      properties:
+        title:
+          type: string
+          example: "MR"
+        firstName:
+          type: string
+          example: "John"
+        surname:
+          type: string
+          example: "Doe"
+        birthDate:
+          type: string
+          format: date
+          example: "1990-01-01"
+        passportNumber:
+          type: string
+          example: "A1234567"
+
+    Contact:
+      type: object
+      required: [name, email, phone]
+      properties:
+        name:
+          type: string
+          example: "Jane Doe"
+        email:
+          type: string
+          example: "jane@example.com"
+        phone:
+          type: string
+          example: "+628123456789"
+
+    FlightBookingResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        pnr:
+          type: string
+          example: "JVOSBS"
+        message:
+          type: string
+          example: "Booking successfully processed"
+        timestamp:
+          type: string
+          format: date-time

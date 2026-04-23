@@ -1,209 +1,324 @@
 openapi: 3.0.3
 info:
-  title: Flight Reservation API
-  version: 1.0.0
-  description: API specification for the RITS Flight Reservation Engine.
+  title: Flight Reservation API (RITS)
+  version: 1.2.0
+  description: |
+    API specification for the RITS Flight Reservation Engine.
+    This API supports a 3-stage reservation process:
+    1. **Availability**: Search for available flights and classes.
+    2. **Fare**: Calculate total pricing including taxes and passenger type discounts.
+    3. **Book**: Finalize the reservation and generate a PNR (Booking Code).
+    
+    It also includes management features like booking history and cancellation.
 servers:
   - url: http://localhost:8080
     description: Local Spring Boot Backend
 
-paths:
-  /api/v1/flights/search:
-    post:
-      summary: Search for available flights
-      operationId: searchFlights
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FlightSearchRequest'
-      responses:
-        '200':
-          description: Successful search
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FlightSearchResponse'
+tags:
+  - name: Reservation
+    description: Endpoints for searching and booking flights
+  - name: Management
+    description: Endpoints for viewing history and managing bookings
 
-  /api/v1/flights/book:
+paths:
+  /api/reservation/availability:
+    get:
+      tags:
+        - Reservation
+      summary: Step 1 - Search for available flights
+      description: Returns a list of available flights and their seat classes based on route and date.
+      operationId: getAvailability
+      parameters:
+        - name: origin
+          in: query
+          required: true
+          description: 3-letter IATA code for origin city (e.g., CGK)
+          schema:
+            type: string
+          example: "CGK"
+        - name: destination
+          in: query
+          required: true
+          description: 3-letter IATA code for destination city (e.g., DPS)
+          schema:
+            type: string
+          example: "DPS"
+        - name: date
+          in: query
+          required: true
+          description: Departure date in YYYY-MM-DD format
+          schema:
+            type: string
+          example: "2024-05-01"
+        - name: airlineCode
+          in: query
+          required: true
+          description: 2-letter airline code (e.g., SJ for Sriwijaya Air, GA for Garuda)
+          schema:
+            type: string
+          example: "SJ"
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilityResponse'
+
+  /api/reservation/fare:
+    get:
+      tags:
+        - Reservation
+      summary: Step 2 - Calculate total fare
+      description: Calculates the final price for a specific flight class and number of passengers.
+      operationId: getFare
+      parameters:
+        - name: flightClassId
+          in: query
+          required: true
+          description: ID of the selected flight class from the availability response
+          schema:
+            type: integer
+        - name: adult
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: child
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: infant
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Fare details calculated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FareResponse'
+
+  /api/reservation/book:
     post:
-      summary: Book selected flights
-      operationId: bookFlights
+      tags:
+        - Reservation
+      summary: Step 3 - Finalize booking
+      description: Submits passenger and contact details to create a formal reservation (PNR).
+      operationId: book
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FlightBookingRequest'
+              $ref: '#/components/schemas/BookingRequest'
       responses:
         '200':
-          description: Booking successful
+          description: Booking successful, PNR generated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FlightBookingResponse'
+                $ref: '#/components/schemas/BookingResponse'
+
+  /api/reservation/booking/{pnr}:
+    get:
+      tags:
+        - Management
+      summary: Get booking details
+      description: Retrieves complete details of a reservation using its unique 6-digit PNR.
+      operationId: getBookingByPnr
+      parameters:
+        - name: pnr
+          in: path
+          required: true
+          description: 6-character alphanumeric booking code
+          schema:
+            type: string
+          example: "U8PXQ7"
+      responses:
+        '200':
+          description: Booking details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+
+  /api/reservation/history:
+    get:
+      tags:
+        - Management
+      summary: Get booking history
+      description: Retrieves a list of all bookings in the system. Used for management dashboards.
+      operationId: getBookingHistory
+      responses:
+        '200':
+          description: List of all bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookingResponse'
+
+  /api/reservation/cancel/{pnr}:
+    post:
+      tags:
+        - Management
+      summary: Cancel reservation
+      description: Cancels a reservation if its current status is 'WAITING'.
+      operationId: cancelBooking
+      parameters:
+        - name: pnr
+          in: path
+          required: true
+          description: PNR code of the booking to cancel
+          schema:
+            type: string
+          example: "U8PXQ7"
+      responses:
+        '200':
+          description: Booking successfully cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '400':
+          description: Invalid request (e.g., booking is already ISSUED)
 
 components:
   schemas:
-    FlightSearchRequest:
-      type: object
-      required: [tripType, fromCity, toCity, departureDate, adult]
-      properties:
-        tripType:
-          type: string
-          enum: [ONE_WAY, TWO_WAY]
-        fromCity:
-          type: string
-          example: "CGK"
-        toCity:
-          type: string
-          example: "DPS"
-        departureDate:
-          type: string
-          format: date
-          example: "2026-04-22"
-        returnDate:
-          type: string
-          format: date
-          example: "2026-04-27"
-        adult:
-          type: integer
-          example: 1
-        child:
-          type: integer
-          example: 0
-        infant:
-          type: integer
-          example: 0
-
-    FlightSearchResponse:
+    AvailabilityResponse:
       type: object
       properties:
-        airlines:
-          type: array
-          items:
-            $ref: '#/components/schemas/Airline'
-
-    Airline:
-      type: object
-      properties:
-        id:
-          type: string
-          example: "sj"
-        name:
-          type: string
-          example: "Sriwijaya Air (SJ)"
         flights:
           type: array
           items:
-            $ref: '#/components/schemas/Flight'
+            $ref: '#/components/schemas/FlightAvailabilityDto'
 
-    Flight:
+    FlightAvailabilityDto:
       type: object
       properties:
+        flightId:
+          type: integer
         flightNo:
           type: string
-          example: "SJ-256"
-        aircraft:
-          type: string
-          example: "B737-800"
         origin:
           type: string
-          example: "CGK"
-        originTime:
-          type: string
-          example: "08:00"
         destination:
           type: string
-          example: "DPS"
-        destTime:
+        departureTime:
           type: string
-          example: "10:50"
-        duration:
+          format: date-time
+        arrivalTime:
           type: string
-          example: "1H 50M"
-        priceBasic:
+          format: date-time
+        airlineName:
           type: string
-          example: "850,000"
-        priceTax:
-          type: string
-          example: "150,000"
-        priceTotal:
-          type: string
-          example: "1,000,000"
-        isReturn:
-          type: boolean
-          example: false
-
-    FlightBookingRequest:
-      type: object
-      required: [flights, passengers, contact, totalFare]
-      properties:
-        flights:
+        classes:
           type: array
           items:
-            $ref: '#/components/schemas/Flight'
+            $ref: '#/components/schemas/FlightClassDto'
+
+    FlightClassDto:
+      type: object
+      properties:
+        classId:
+          type: integer
+        classCode:
+          type: string
+        className:
+          type: string
+        basePrice:
+          type: number
+
+    FareResponse:
+      type: object
+      properties:
+        flightClassId:
+          type: integer
+        adultCount:
+          type: integer
+        childCount:
+          type: integer
+        infantCount:
+          type: integer
+        basePricePerAdult:
+          type: number
+        totalTax:
+          type: number
+        totalFare:
+          type: number
+
+    BookingRequest:
+      type: object
+      required: [flightClassId, passengers, contact]
+      properties:
+        flightClassId:
+          type: integer
         passengers:
           type: array
           items:
-            $ref: '#/components/schemas/Passenger'
+            $ref: '#/components/schemas/BookingPassengerDto'
         contact:
-          $ref: '#/components/schemas/Contact'
-        totalFare:
-          type: string
-          example: "1,000,000"
-        totalPassengers:
-          type: integer
-          example: 1
+          $ref: '#/components/schemas/BookingContactDto'
 
-    Passenger:
+    BookingPassengerDto:
       type: object
-      required: [title, firstName, surname]
+      required: [title, firstName, surname, type]
       properties:
         title:
           type: string
-          example: "MR"
+          enum: [MR, MRS, MS, MSTR, MISS]
         firstName:
           type: string
-          example: "John"
         surname:
           type: string
-          example: "Doe"
         birthDate:
           type: string
           format: date
           example: "1990-01-01"
         passportNumber:
           type: string
-          example: "A1234567"
+        type:
+          type: string
+          enum: [ADULT, CHILD, INFANT]
 
-    Contact:
+    BookingContactDto:
       type: object
       required: [name, email, phone]
       properties:
         name:
           type: string
-          example: "Jane Doe"
         email:
           type: string
-          example: "jane@example.com"
         phone:
           type: string
-          example: "+628123456789"
 
-    FlightBookingResponse:
+    BookingResponse:
       type: object
       properties:
-        success:
-          type: boolean
-          example: true
         pnr:
           type: string
-          example: "JVOSBS"
-        message:
-          type: string
-          example: "Booking successfully processed"
-        timestamp:
+        bookingTime:
           type: string
           format: date-time
+        status:
+          type: string
+          enum: [WAITING, ISSUED, CANCELLED]
+          example: "WAITING"
+        totalFare:
+          type: number
+        passengers:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingPassengerDto'
+        itinerary:
+          $ref: '#/components/schemas/FlightAvailabilityDto'
+        contact:
+          $ref: '#/components/schemas/BookingContactDto'

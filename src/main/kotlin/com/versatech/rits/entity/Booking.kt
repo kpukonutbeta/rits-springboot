@@ -1,6 +1,7 @@
 package com.versatech.rits.entity
 
 import jakarta.persistence.*
+import java.math.BigDecimal
 import java.time.LocalDateTime
 
 @Entity
@@ -11,28 +12,26 @@ data class Booking(
     val id: Long = 0,
     
     val pnr: String = "",
-    val totalFare: String = "",
-    val totalPassengers: Int = 0,
+    val totalFare: BigDecimal = BigDecimal.ZERO,
     val bookingTime: LocalDateTime = LocalDateTime.now(),
+    var status: String = "WAITING", // WAITING, ISSUED, CANCELLED
     
     @OneToMany(mappedBy = "booking", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var passengers: MutableList<Passenger> = mutableListOf(),
     
-    @OneToOne(mappedBy = "booking", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    var contact: Contact? = null,
+    @OneToMany(mappedBy = "booking", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    var details: MutableList<BookingDetail> = mutableListOf(),
     
-    // We can just save the flight numbers or create a ManyToMany.
-    // For simplicity, we'll store flight numbers as a comma separated string since
-    // flights represent schedule details and we just want to link them.
-    val flightNumbers: String = ""
+    @OneToOne(mappedBy = "booking", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    var contact: Contact? = null
 ) {
     fun addPassenger(passenger: Passenger) {
         passengers.add(passenger)
         passenger.booking = this
     }
-    
-    fun setBookingContact(newContact: Contact) {
-        contact = newContact
-        newContact.booking = this
+
+    fun addDetail(detail: BookingDetail) {
+        details.add(detail)
+        detail.booking = this
     }
 }

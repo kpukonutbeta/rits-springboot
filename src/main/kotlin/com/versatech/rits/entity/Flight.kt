@@ -1,6 +1,7 @@
 package com.versatech.rits.entity
 
 import jakarta.persistence.*
+import java.time.LocalDateTime
 
 @Entity
 @Table(name = "flights")
@@ -12,16 +13,15 @@ data class Flight(
     val flightNo: String = "",
     val aircraft: String = "",
     val origin: String = "",
-    val originTime: String = "",
+    val originTime: LocalDateTime = LocalDateTime.now(),
     val destination: String = "",
-    val destTime: String = "",
+    val destTime: LocalDateTime = LocalDateTime.now(),
     val duration: String = "",
-    val priceBasic: String = "",
-    val priceTax: String = "",
-    val priceTotal: String = "",
-    val isReturn: Boolean = false,
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "airline_id")
-    var airline: Airline? = null
+    var airline: Airline? = null,
+
+    @OneToMany(mappedBy = "flight", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    var classes: MutableList<FlightClass> = mutableListOf()
 )

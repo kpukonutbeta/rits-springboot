@@ -13,12 +13,12 @@ class SecurityConfig {
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
         http
+            .cors { } 
             .csrf { it.disable() }
             .authorizeHttpRequests { auth ->
                 auth
-                    // Mengizinkan semua request ke endpoint ini untuk mempermudah development
-                    .requestMatchers("/api/products/**").permitAll()
-                    // Selain itu bisa diakses bebas sementara
+                    .requestMatchers("/api/**").permitAll()
+                    .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/openapi.yaml").permitAll()
                     .anyRequest().permitAll()
             }
         
